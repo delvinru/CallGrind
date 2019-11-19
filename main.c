@@ -14,7 +14,7 @@ void build_file(FILE*, FILE*);
 char* create_name(char*);
 char* create_command(char*, char*, char* argv[], int);
 
-int main(int argc, char* argv[])
+int main(int argc, char** argv)
 {
     if(WIN)
     {
@@ -72,8 +72,7 @@ char* create_command(char* buffer, char* file_name, char* argv[], int argc)
     {
         strcat(buffer, "g++ ");
         strcat(buffer, file_name);
-        strcat(buffer, " ");
-        strcat(buffer,"headers/analyze.c -o output.out; ./output.out ");
+        strcat(buffer," headers/analyze.c -o output.out; ./output.out ");
         for(int i = 2; i < argc; i++, strcat(buffer, " "))
             strcat(buffer, argv[i]);
         strcat(buffer, "; rm output.out");
@@ -87,8 +86,7 @@ char* create_command(char* buffer, char* file_name, char* argv[], int argc)
     {
         strcat(buffer, "gcc ");
         strcat(buffer, file_name);
-        strcat(buffer, " ");
-        strcat(buffer,"headers/analyze.c -o output.out; ./output.out ");
+        strcat(buffer," headers/analyze.c -o output.out; ./output.out ");
         for(int i = 2; i < argc; i++, strcat(buffer, " "))
             strcat(buffer, argv[i]);
         strcat(buffer, "; rm output.out");
@@ -128,6 +126,7 @@ void build_file(FILE* file, FILE* source)
     short int injected_sens = 0; //
     short int long_comment = 0;
     short int have_return = 0;
+    short int only_return = 0;
     //Сделать проверку на cs файлы
     //Разобраться как они подключаются и компилятся
     time_t rawtime;
@@ -160,13 +159,28 @@ void build_file(FILE* file, FILE* source)
                 ++left_brackets;
             if(strstr(buffer,"}"))
                 ++right_brackets;
+            
             if(!injected_sens)
             {
                 if(strstr(name_buf, "{"))
                 {
-                    fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n%s", name_buf,function_name, buffer);
+                    if(strstr(buffer, "return"))
+                    {
+                        fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s}\n", name_buf, function_name, buffer);
+                        only_return = 1;
+                    }
+                    else
+                        fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n%s", name_buf,function_name, buffer);
                 } else
-                    fprintf(file, "\tadd_sensor(\"%s()\", g++);\n%s%s", function_name, name_buf, buffer);
+                {
+                    if(strstr(buffer, "return"))
+                    {
+                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s%s}\n", function_name, name_buf, buffer);
+                        only_return = 1;
+                    }
+                    else
+                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n%s%s", function_name, name_buf, buffer);
+                }
                 memset(name_buf,0, sizeof(name_buf));
                 injected_sens = 1;
                 continue;
@@ -182,12 +196,13 @@ void build_file(FILE* file, FILE* source)
                 have_return = 1;
                 continue;
             }
-            if(left_brackets == right_brackets)
+            if(left_brackets == right_brackets )
             {
                 if(have_return)
                     fprintf(file,"\tg--;\n%s%s", return_buf, buffer);
                 else
-                    fprintf(file,"\tg--;\n%s", buffer);
+                    if(!only_return)
+                        fprintf(file,"\tg--;\n%s", buffer);
                 is_function = 0;
             }
             continue;
@@ -204,6 +219,7 @@ void build_file(FILE* file, FILE* source)
                 is_function = 1;
                 injected_sens = 0;
                 have_return = 0;
+                only_return = 0;
                 left_brackets = right_brackets = 0;
                 ++left_brackets;
                 continue;
