@@ -12,7 +12,7 @@
 char* find_func_name(char*, char*);
 void build_file(FILE*, FILE*);
 char* create_name(char*);
-char* create_command(char*, char*, char*);
+char* create_command(char*, char*, char* argv[], int);
 
 int main(int argc, char* argv[])
 {
@@ -26,15 +26,13 @@ int main(int argc, char* argv[])
     FILE* edited_file;
     char* file_name;
     //Backup user_args
-    char user_args[128] = "";
-    if(argv[2] != NULL)
-        strcat(user_args, argv[2]);
-
+    char input_name[128] = {0};
     //Base setting
     if(argv[1] != NULL)
     {
-        user_file = fopen(argv[1],"r");
-        file_name = create_name(argv[1]);
+        strcat(input_name, argv[1]);
+        user_file = fopen(input_name,"r");
+        file_name = create_name(input_name);
     } else{
         printf("\e[1;31mUsage: callgrind sample/file args_for_you_program\e[0m\n");
         exit(1);
@@ -42,10 +40,7 @@ int main(int argc, char* argv[])
 
     //Create command
     char buffer[128] = "";
-    if(strcmp(user_args, "") != 0)
-        create_command(buffer, file_name, user_args);
-    else
-        create_command(buffer, file_name, "");
+    create_command(buffer, file_name, argv, argc);
 
     //Created backup file
     printf("\e[1;32m[+]\e[0mCreated file: %s\n", file_name);
@@ -71,7 +66,7 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-char* create_command(char* buffer, char* file_name, char* user_args)
+char* create_command(char* buffer, char* file_name, char* argv[], int argc)
 {
     if(strstr(file_name, ".cpp"))
     {
@@ -79,7 +74,8 @@ char* create_command(char* buffer, char* file_name, char* user_args)
         strcat(buffer, file_name);
         strcat(buffer, " ");
         strcat(buffer,"headers/analyze.c -o output.out; ./output.out ");
-        strcat(buffer, user_args);
+        for(int i = 2; i < argc; i++, strcat(buffer, " "))
+            strcat(buffer, argv[i]);
         strcat(buffer, "; rm output.out");
     }
     else if(strstr(file_name, ".cs"))
@@ -92,8 +88,9 @@ char* create_command(char* buffer, char* file_name, char* user_args)
         strcat(buffer, "gcc ");
         strcat(buffer, file_name);
         strcat(buffer, " ");
-        strcat(buffer,"headers/analyze.c -o output.out; ./output.out");
-        strcat(buffer,user_args);
+        strcat(buffer,"headers/analyze.c -o output.out; ./output.out ");
+        for(int i = 2; i < argc; i++, strcat(buffer, " "))
+            strcat(buffer, argv[i]);
         strcat(buffer, "; rm output.out");
     }
     else{
