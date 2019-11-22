@@ -10,7 +10,7 @@
 #endif
 
 char* find_func_name(char*, char*);
-void build_file(FILE*, FILE*);
+void  build_file(FILE*, FILE*);
 char* create_name(char*);
 char* create_command(char*, char*, char* argv[], int);
 
@@ -159,7 +159,7 @@ void build_file(FILE* file, FILE* source)
                 ++left_brackets;
             if(strstr(buffer,"}"))
                 ++right_brackets;
-            
+
             if(!injected_sens)
             {
                 if(strstr(name_buf, "{"))
@@ -173,9 +173,9 @@ void build_file(FILE* file, FILE* source)
                         fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n%s", name_buf,function_name, buffer);
                 } else
                 {
-                    if(strstr(buffer, "return"))
+                    if(strstr(name_buf, "return"))
                     {
-                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s%s}\n", function_name, name_buf, buffer);
+                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s%s", function_name, name_buf, buffer);
                         only_return = 1;
                     }
                     else
@@ -209,7 +209,7 @@ void build_file(FILE* file, FILE* source)
         }else
             fputs(buffer, file);
 
-        if((strstr(buffer, "float") || strstr(buffer, "double") || strstr(buffer, "char")|| strstr(buffer, "void") || strstr(buffer, "int") || strstr(buffer, "::")) && strstr(buffer, "(") && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "printf") == NULL)
+        if((strstr(buffer, "float") || strstr(buffer, "double") || strstr(buffer, "char")|| strstr(buffer, "void") || strstr(buffer, "int") || strstr(buffer, "::")) && strstr(buffer, "(") && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "%") == NULL)
         {
             fgets(name_buf,127,source);
             if(strstr(buffer, "{") || strstr(name_buf,"{"))
