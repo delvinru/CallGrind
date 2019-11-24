@@ -74,7 +74,11 @@ char* create_command(char* buffer, char* file_name, char* argv[], int argc)
         strcat(buffer, file_name);
         strcat(buffer," headers/analyze.c -o output.out; ./output.out ");
         for(int i = 2; i < argc; i++, strcat(buffer, " "))
+        {
+            strcat(buffer, "'");
             strcat(buffer, argv[i]);
+            strcat(buffer, "'");
+        }
         strcat(buffer, "; rm output.out");
     }
     else if(strstr(file_name, ".cs"))
@@ -86,9 +90,13 @@ char* create_command(char* buffer, char* file_name, char* argv[], int argc)
     {
         strcat(buffer, "gcc ");
         strcat(buffer, file_name);
-        strcat(buffer," headers/analyze.c -o output.out; ./output.out ");
+        strcat(buffer," headers/analyze.c -o output.out -lm; ./output.out ");
         for(int i = 2; i < argc; i++, strcat(buffer, " "))
+        {
+            strcat(buffer, "'");
             strcat(buffer, argv[i]);
+            strcat(buffer, "'");
+        }
         strcat(buffer, "; rm output.out");
     }
     else{
@@ -127,8 +135,7 @@ void build_file(FILE* file, FILE* source)
     short int long_comment = 0;
     short int have_return = 0;
     short int only_return = 0;
-    //Сделать проверку на cs файлы
-    //Разобраться как они подключаются и компилятся
+
     time_t rawtime;
     struct tm * timeinfo;
     time ( &rawtime );
@@ -166,25 +173,26 @@ void build_file(FILE* file, FILE* source)
                 {
                     if(strstr(buffer, "return"))
                     {
-                        fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s}\n", name_buf, function_name, buffer);
+                        fprintf(file, "%s\tadd_sensor(\"%s()\", callgrind_checker++);\n\tcallgrind_checker--;\n%s}\n", name_buf, function_name, buffer);
                         only_return = 1;
                     }
                     else
-                        fprintf(file, "%s\tadd_sensor(\"%s()\", g++);\n%s", name_buf,function_name, buffer);
+                        fprintf(file, "%s\tadd_sensor(\"%s()\", callgrind_checker++);\n%s", name_buf,function_name, buffer);
                 } else
                 {
                     if(strstr(name_buf, "return"))
                     {
-                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n\tg--;\n%s%s", function_name, name_buf, buffer);
+                        fprintf(file, "\tadd_sensor(\"%s()\", callgrind_checker++);\n\tcallgrind_checker--;\n%s%s", function_name, name_buf, buffer);
                         only_return = 1;
                     }
                     else
-                        fprintf(file, "\tadd_sensor(\"%s()\", g++);\n%s%s", function_name, name_buf, buffer);
+                        fprintf(file, "\tadd_sensor(\"%s()\", callgrind_checker++);\n%s%s", function_name, name_buf, buffer);
                 }
                 memset(name_buf,0, sizeof(name_buf));
                 injected_sens = 1;
                 continue;
             }
+
             if(left_brackets != right_brackets && strstr(buffer, "return") == NULL)
             {
                 fputs(buffer, file);
@@ -194,22 +202,29 @@ void build_file(FILE* file, FILE* source)
             {
                 strcpy(return_buf, buffer);
                 have_return = 1;
+                for(int i = 0; i < strlen(buffer); i++)
+                    if(buffer[i] == ' ')
+                        fprintf(file, " ");
+                fprintf(file, "callgrind_checker--;\n%s", buffer);
                 continue;
             }
-            if(left_brackets == right_brackets )
+
+            if(left_brackets == right_brackets)
             {
-                if(have_return)
-                    fprintf(file,"\tg--;\n%s%s", return_buf, buffer);
-                else
-                    if(!only_return)
-                        fprintf(file,"\tg--;\n%s", buffer);
+                if(!only_return)
+                {
+                    if(have_return)
+                        fprintf(file, "%s", buffer);
+                    else
+                        fprintf(file,"\tcallgrind_checker--;\n%s", buffer);
+                }
                 is_function = 0;
             }
             continue;
         }else
             fputs(buffer, file);
 
-        if((strstr(buffer, "float") || strstr(buffer, "double") || strstr(buffer, "char")|| strstr(buffer, "void") || strstr(buffer, "int") || strstr(buffer, "::")) && strstr(buffer, "(") && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "%") == NULL)
+        if((strstr(buffer, "float") || strstr(buffer, "double") || strstr(buffer, "char")|| strstr(buffer, "void") || strstr(buffer, "int") || strstr(buffer, "::")) && strstr(buffer, "(") && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "%") == NULL && strstr(buffer, ";") == NULL)
         {
             fgets(name_buf,127,source);
             if(strstr(buffer, "{") || strstr(name_buf,"{"))
