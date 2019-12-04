@@ -1,3 +1,8 @@
+int some_function(int a, int b)
+{
+    return a-b;
+}
+
 /*
     ККСО-01-19
     Колесников Алексей
@@ -37,6 +42,21 @@ int buble_sort(int *arr, int n)
 }
 */
 
+double just_double_func(int a, double b)
+{
+    return a+b;
+}
+
+int just_int_func(int a, int b)
+{
+    return a - b;
+}
+
+float just_float_func(float a, float b)
+{
+    return a*b/a;
+}
+
 int field_arr(int *arr, int n)
 {
     for(int i = 0; i < n; i++)
@@ -44,15 +64,11 @@ int field_arr(int *arr, int n)
     return 0;
 }
 
-float just_double(int a, double b)
-{
-    return a*b;
-}
-
 int print(int *arr, int n)
 {
     for(int i = 0; i < n; i++)
         printf("%d ", arr[i]);
+    return 0;
 }
 
 void find_range(int *arr, int n, int index, int x){
@@ -142,6 +158,7 @@ int merge(int *arr, int start, int mid, int end)
         j++;
         k++;
     }
+    return 0;
 }
 
 int merge_sort(int *arr, int start, int end)
@@ -153,6 +170,7 @@ int merge_sort(int *arr, int start, int end)
         merge_sort(arr, mid + 1, end);
         merge(arr, start, mid, end);
     }
+    return 0;
 }
 
 int main(){

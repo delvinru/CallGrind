@@ -126,7 +126,6 @@ void build_file(FILE* file, FILE* source)
 {
     char buffer[128] = {0}; // Текущий буфер
     char name_buf[128] = {0};
-    char return_buf[128] = {0};
     char function_name[128]; // Имя функции
     short int is_function = 0; // Проверка на функцию
     short int left_brackets = 0; //  Количество {
@@ -140,8 +139,8 @@ void build_file(FILE* file, FILE* source)
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
+    //Little Debug info and include headers
     fprintf(file, "/*\n\tCreated by Callgrind ฅ^•ﻌ•^ฅ\n\t%s*/\n#include \"../headers/analyze.h\"\n", asctime(timeinfo));
-
     while(fgets(buffer, 127, source))
     {
         //Проверка на комментарий
@@ -200,12 +199,9 @@ void build_file(FILE* file, FILE* source)
             }
             if(strstr(buffer, "return"))
             {
-                strcpy(return_buf, buffer);
                 have_return = 1;
-                for(int i = 0; i < strlen(buffer); i++)
-                    if(buffer[i] == ' ')
-                        fprintf(file, " ");
-                fprintf(file, "callgrind_checker--;\n%s", buffer);
+                fprintf(file, "\t{callgrind_checker--;\n%s", buffer); //{ заворачивание в блок кода
+                fprintf(file, "\t}\n");
                 continue;
             }
 
@@ -224,7 +220,7 @@ void build_file(FILE* file, FILE* source)
         }else
             fputs(buffer, file);
 
-        if((strstr(buffer, "float") || strstr(buffer, "double") || strstr(buffer, "char")|| strstr(buffer, "void") || strstr(buffer, "int") || strstr(buffer, "::")) && strstr(buffer, "(") && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "%") == NULL && strstr(buffer, ";") == NULL)
+        if((strstr(buffer, "float ") || strstr(buffer, "double ") || strstr(buffer, "char ")|| strstr(buffer, "void ") || strstr(buffer, "int ") || strstr(buffer, "::")) && strchr(buffer, '(') && strchr(buffer,';') == NULL && !(strstr(buffer,"for") || strstr(buffer,"while")) && strstr(buffer, "%") == NULL)
         {
             fgets(name_buf,127,source);
             if(strstr(buffer, "{") || strstr(name_buf,"{"))
