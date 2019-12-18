@@ -1,8 +1,15 @@
 /*
 	Created by Callgrind ฅ^•ﻌ•^ฅ
-	Wed Dec  4 23:30:03 2019
+	Wed Dec 18 22:39:21 2019
 */
 #include "../headers/analyze.h"
+int some_function(int a, int b)
+{
+	add_sensor("some_function()", callgrind_checker++);
+	callgrind_checker--;
+    return a-b;
+}
+
 /*
     ККСО-01-19
     Колесников Алексей
@@ -42,20 +49,35 @@ int buble_sort(int *arr, int n)
 }
 */
 
+double just_double_func(int a, double b)
+{
+	add_sensor("just_double_func()", callgrind_checker++);
+	callgrind_checker--;
+    return a+b;
+}
+
+int just_int_func(int a, int b)
+{
+	add_sensor("just_int_func()", callgrind_checker++);
+	callgrind_checker--;
+    return a - b;
+}
+
+float just_float_func(float a, float b)
+{
+	add_sensor("just_float_func()", callgrind_checker++);
+	callgrind_checker--;
+    return a*b/a;
+}
+
 int field_arr(int *arr, int n)
 {
 	add_sensor("field_arr()", callgrind_checker++);
     for(int i = 0; i < n; i++)
         arr[i] = rand() % (n+1);
-     callgrind_checker--;
+	{callgrind_checker--;
     return 0;
-}
-
-float just_double(int a, double b)
-{
-	add_sensor("just_double()", callgrind_checker++);
-	callgrind_checker--;
-    return a*b;
+	}
 }
 
 int print(int *arr, int n)
@@ -63,7 +85,9 @@ int print(int *arr, int n)
 	add_sensor("print()", callgrind_checker++);
     for(int i = 0; i < n; i++)
         printf("%d ", arr[i]);
-	callgrind_checker--;
+	{callgrind_checker--;
+    return 0;
+	}
 }
 
 void find_range(int *arr, int n, int index, int x){
@@ -114,8 +138,9 @@ int binary_search(int *arr, int n, int x)
         printf("X not found!\n");
 
     printf("Iteration count: %d\n", oper);
-     callgrind_checker--;
+	{callgrind_checker--;
     return 0;
+	}
 }
 
 int merge(int *arr, int start, int mid, int end)
@@ -158,7 +183,9 @@ int merge(int *arr, int start, int mid, int end)
         j++;
         k++;
     }
-	callgrind_checker--;
+	{callgrind_checker--;
+    return 0;
+	}
 }
 
 int merge_sort(int *arr, int start, int end)
@@ -171,7 +198,9 @@ int merge_sort(int *arr, int start, int end)
         merge_sort(arr, mid + 1, end);
         merge(arr, start, mid, end);
     }
-	callgrind_checker--;
+	{callgrind_checker--;
+    return 0;
+	}
 }
 
 int main(){
@@ -206,6 +235,7 @@ int main(){
     /* Understand all from function name */
     binary_search(arr, FACTOR*n, x);
     printf("\n");
-     callgrind_checker--;
+	{callgrind_checker--;
     return 0;
+	}
 }

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 #include <time.h>
 
 #if (defined (_WIN32) || defined (_WIN64))
@@ -12,7 +13,8 @@
 char* find_func_name(char*, char*);
 void  build_file(FILE*, FILE*);
 char* create_name(char*);
-char* create_command(char*, char*, char* argv[], int);
+void  create_command(char*, char*, char* argv[], int);
+void  create_files(int , char**, int);
 
 int main(int argc, char** argv)
 {
@@ -21,52 +23,128 @@ int main(int argc, char** argv)
         printf("\e[1;31[!]\e[0mWork only on Linux\n");
         exit(0);
     }
-    // Open and create backup
-    FILE* user_file;
-    FILE* edited_file;
-    char* file_name;
-    //Backup user_args
-    char input_name[128] = {0};
-    //Base setting
+    
     if(argv[1] != NULL)
     {
-        strcat(input_name, argv[1]);
-        user_file = fopen(input_name,"r");
-        file_name = create_name(input_name);
+        if(strstr(argv[1], "projects/all"))
+        {
+            printf("\e[1;32m### Choosen mode to edit ALL files in directory ###\e[0m\n");
+            create_files(1, NULL, 0);
+        } else
+        {
+            printf("\e[1;32m### Choosen mode to edit ONE file ###\e[0m\n");
+            create_files(0, argv, argc);
+        }
     } else{
-        printf("\e[1;31mUsage: callgrind sample/file args_for_you_program\e[0m\n");
-        exit(1);
+        printf("\e[1;32mUsage: callgrind projects/file args_for_you_program\nOR: callgrind projects/all to choose all files from directory\n\e[0m");
+        exit(0);
     }
-
-    //Create command
-    char buffer[128] = "";
-    create_command(buffer, file_name, argv, argc);
-
-    //Created backup file
-    printf("\e[1;32m[+]\e[0mCreated file: %s\n", file_name);
-    edited_file = fopen(file_name, "w");
-
-    //Build edited file
-    printf("\e[1;32m[+]\e[0mStart the analysis program\n");
-    build_file(edited_file, user_file);
-
-    //End of analysis
-    printf("\e[1;32m[+]\e[0mAnalysis completed!\n");
-    fclose(user_file);
-    fclose(edited_file);
-
-    printf("\e[1;32m[+]\e[0mExecutable command:%s\n", buffer);
-    printf("\e[1;32m[+]\e[0mRun user program...\n");
-    printf("\e[1;33m#################################\e[0m\n");
-    system(buffer);
-    printf("\e[1;33m#################################\e[0m\n");
-    printf("\e[1;32m[+]\e[0mChecking result...:\n");
-    system("cat output.txt");
-
     return 0;
 }
 
-char* create_command(char* buffer, char* file_name, char* argv[], int argc)
+void create_files(int mode, char** argv, int argc)
+{
+    if (mode)
+    {
+        struct dirent *file;
+        DIR *dir;
+        dir = opendir("projects");
+        if(dir == NULL)
+        {
+            printf("Cannot open directory projects\n");
+            exit(1);
+        }
+        while((file = readdir(dir)) != NULL)
+        {
+            if(strcmp(file->d_name, ".") == 0)
+                continue;
+            if(strcmp(file->d_name, "..") == 0)
+                continue;
+
+            //Begin edit file
+            printf("\n\e[1;36mFILE: %s\e[0m\n", file->d_name);
+
+            FILE *edited_file;
+            FILE *user_file;
+            // Basic var for work with filename
+            char input_name[128] = {0};
+            char file_name[128] = {0};
+            char user_file_name[128] = {0};
+
+            // Base setup for begin
+            strcat(input_name, file->d_name);
+            strcat(user_file_name, "projects/");
+            strcat(user_file_name, file->d_name);
+
+            // Open user file
+            user_file = fopen(user_file_name, "r");
+
+            // Create dir path
+            strcat(file_name, "projects_edited/");
+            strcat(file_name, create_name(input_name));
+
+            // Command for compile
+            char buffer[128] = "";
+            create_command(buffer, file_name, NULL, 0);
+            printf("\e[1;35mCommand to compile: %s\e[0m\n", buffer);
+
+            // Create a backup file
+            printf("\e[1;32m[+]\e[0m Created file: %s\n", file_name);
+            edited_file = fopen(file_name, "w"); 
+
+            // Build edited file
+            printf("\e[1;32m[+]\e[0m Start the analysis program\n");
+            build_file(edited_file, user_file);
+
+            // End of analysis
+            printf("\e[1;32m[+]\e[0m Analysis completed!\n");
+            fclose(user_file);
+            fclose(edited_file);
+        }
+        closedir(dir);
+    }else
+    {
+        FILE* user_file;
+        FILE* edited_file;
+        char* file_name;
+
+        char input_name[128] = {0};
+        strcat(input_name, argv[1]);
+        user_file = fopen(input_name,"r");
+        file_name = create_name(input_name);
+
+        printf("\n\e[1;36mFILE: %s\e[0m\n", file_name);
+
+        //Create command
+        char buffer[128] = "";
+        create_command(buffer, file_name, argv, argc);
+
+        //Created backup file
+        printf("\e[1;32m[+]\e[0m Created file: %s\n", file_name);
+        edited_file = fopen(file_name, "w");
+
+        //Build edited file
+        printf("\e[1;32m[+]\e[0m Start the analysis program\n");
+        build_file(edited_file, user_file);
+
+        //End of analysis
+        printf("\e[1;32m[+]\e[0m Analysis completed!\n");
+        fclose(user_file);
+        fclose(edited_file);
+
+        printf("\e[1;32m[+]\e[0m Executable command:%s\n", buffer);
+        printf("\e[1;31m[!]\e[1;35m If your programm required include some libraries copy this command and insert them\n\e[0m");
+        printf("\e[1;32m[+]\e[0m Run user program...\n");
+        printf("\e[1;33m#################################\e[0m\n");
+        system(buffer);
+        printf("\e[1;33m#################################\e[0m\n");
+        printf("\e[1;32m[+]\e[0m Checking result...:\n");
+        system("cat output.txt");
+    }
+    exit(0);
+}
+
+void create_command(char* buffer, char* file_name, char* argv[], int argc)
 {
     if(strstr(file_name, ".cpp"))
     {
@@ -90,7 +168,7 @@ char* create_command(char* buffer, char* file_name, char* argv[], int argc)
     {
         strcat(buffer, "gcc ");
         strcat(buffer, file_name);
-        strcat(buffer," headers/analyze.c -o output.out -lm; ./output.out ");
+        strcat(buffer," headers/analyze.c -o output.out; ./output.out ");
         for(int i = 2; i < argc; i++, strcat(buffer, " "))
         {
             strcat(buffer, "'");
@@ -130,7 +208,7 @@ void build_file(FILE* file, FILE* source)
     short int is_function = 0; // Проверка на функцию
     short int left_brackets = 0; //  Количество {
     short int right_brackets = 0; // Количество }
-    short int injected_sens = 0; //
+    short int injected_sens = 0; 
     short int long_comment = 0;
     short int have_return = 0;
     short int only_return = 0;
@@ -200,8 +278,7 @@ void build_file(FILE* file, FILE* source)
             if(strstr(buffer, "return"))
             {
                 have_return = 1;
-                fprintf(file, "\t{callgrind_checker--;\n%s", buffer); //{ заворачивание в блок кода
-                fprintf(file, "\t}\n");
+                fprintf(file, "\t{callgrind_checker--;\n%s\t}\n", buffer); //{ заворачивание в блок кода
                 continue;
             }
 
@@ -226,7 +303,7 @@ void build_file(FILE* file, FILE* source)
             if(strstr(buffer, "{") || strstr(name_buf,"{"))
             {
                 find_func_name(buffer, function_name);
-                printf("\e[1;32m[+]\e[0mFunction \e[1;33m%s\e[0m find!\n", function_name);
+                printf("\e[1;32m[+]\e[0m Function \e[1;33m%s\e[0m find!\n", function_name);
                 is_function = 1;
                 injected_sens = 0;
                 have_return = 0;
@@ -248,20 +325,20 @@ char* create_name(char* name)
         name[len-2] = '\0';
         name[len-3] = '\0';
         name[len-4] = '\0';
-        strcat(name, "_backup.cpp");
+        strcat(name, "_edited.cpp");
     }
     else if(strstr(name, ".cs"))
     {
         name[len-1] = '\0';
         name[len-2] = '\0';
         name[len-3] = '\0';
-        strcat(name, "_backup.cs");
+        strcat(name, "_edited.cs");
     }
     else
     {
         name[len-1] = '\0';
         name[len-2] = '\0';
-        strcat(name, "_backup.c");
+        strcat(name, "_edited.c");
     }
     return name;
 }
