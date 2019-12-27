@@ -108,9 +108,16 @@ void create_files(int mode, char** argv, int argc)
         FILE* edited_file;
         char* file_name;
 
+        //Open user file
         char input_name[128] = {0};
         strcat(input_name, argv[1]);
-        user_file = fopen(input_name,"r");
+        user_file = fopen(input_name, "r");
+
+        //Create edited file
+        memset(input_name, 0, sizeof(input_name));
+        strcat(input_name, "projects_edited/");
+        strtok(argv[1], "/");
+        strcat(input_name, strtok(NULL, "/"));
         file_name = create_name(input_name);
 
         printf("\n\e[1;36mFILE: %s\e[0m\n", file_name);
@@ -141,7 +148,6 @@ void create_files(int mode, char** argv, int argc)
         printf("\e[1;32m[+]\e[0m Checking result...:\n");
         system("cat output.txt");
     }
-    exit(0);
 }
 
 void create_command(char* buffer, char* file_name, char* argv[], int argc)
